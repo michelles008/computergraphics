@@ -8,14 +8,14 @@
 from tracking.scene import init_tracking, get_body_state
 from integration.motion_mapper import body_to_visual
 from renderer import init_scene, apply_visual_state, render_frame
-
+import time
 
 def main():
     # Start tracking + graphics
-    track_ctx = init_tracking(preview=True)  # Michelle's webcam tracker
-    scene = init_scene()                     # your renderer's scene object
+    track_ctx = init_tracking(preview=False)  
+    scene = init_scene()                   
 
-    print("[main] Starting loop. Press Ctrl+C in the terminal to quit.")
+    print("[main] Starting loop. Ctrl+C to quit.")
 
     try:
         while True:
@@ -35,6 +35,8 @@ def main():
 
             # 4. Draw one frame
             render_frame(scene)
+
+            time.sleep(0.02)
 
     except KeyboardInterrupt:
         print("\n[main] Stopped by user (Ctrl+C).")

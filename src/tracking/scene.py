@@ -132,7 +132,7 @@ if __name__ == "__main__":
         while True:
             state = get_body_state(ctx)
             if state is None:
-                break
+                continue
             print(state)
     except Exception as e:
         print(f"[tracking error] {e}")
