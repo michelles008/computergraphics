@@ -89,6 +89,7 @@ def get_body_state(ctx: TrackingContext) -> Optional[Dict[str, float]]:
     ok, frame = ctx.cap.read()
     if not ok:
         return None
+    frame = cv2.flip(frame, 1)
 
     # BGR -> RGB for MediaPipe
     rgb = frame[:, :, ::-1]
@@ -96,7 +97,6 @@ def get_body_state(ctx: TrackingContext) -> Optional[Dict[str, float]]:
     res = ctx.pose.process(rgb)
     state = _extract(res.pose_landmarks, frame.shape[1], frame.shape[0])
 
-    # Optional tiny preview window (press 'q' to quit this test loop)
     if ctx.preview:
         view = frame.copy()
         if mp is not None and res.pose_landmarks:
@@ -105,7 +105,6 @@ def get_body_state(ctx: TrackingContext) -> Optional[Dict[str, float]]:
             )
         cv2.imshow("tracking preview (press q to quit)", view)
         if cv2.waitKey(1) & 0xFF == ord('q'):
-            # Caller can catch None to stop its loop
             return None
 
     return state, frame, res.pose_landmarks
@@ -138,6 +137,6 @@ if __name__ == "__main__":
         print(f"[tracking error] {e}")
     finally:
         try:
-            _cleanup(ctx)  # type: ignore[name-defined]
+            _cleanup(ctx)  
         except Exception:
             pass

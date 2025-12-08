@@ -78,12 +78,12 @@ def render_frame(scene, frame, landmarks=None):
     if mode == "one_hand":
         color = (0, 255, 0)
     elif mode == "two_hands":
-        color = (255, 150, 50)
+        color = (0, 255, 0) 
     else:
-        color = (0, 120, 255)
+        color = (0, 255, 0) 
 
     # Draw tower ON TOP of webcam feed
-    cv2.rectangle(img, (x1, y1), (x2, y2), color, -1)
+    cv2.rectangle(img, (x1, y1), (x2, y2), color, thickness=-1)
     cv2.line(img, (0, base_y), (w, base_y), (255, 255, 255), 2)
 
     # Show final overlay
