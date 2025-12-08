@@ -19,30 +19,38 @@ def main():
 
     try:
         while True:
-            # 1. Read body state from camera
-            body = get_body_state(track_ctx)
-            if body is None:
-                # No pose detected this frame; skip but keep loop alive
+            result = get_body_state(track_ctx)
+            if result is None:
                 continue
+
+            body, frame, landmarks = result 
 
             # 2. Map body -> visual
             visual = body_to_visual(body)
             if visual is None:
                 continue
 
-            # 3. Apply visual state to scene
+            scene["pose_landmarks"] = landmarks
+
+            visual = body_to_visual(body)
+            if visual is None:
+                continue
+
+            # 3. add pose landmarks to scene
+            scene["pose_landmarks"] = landmarks
+
+            # 4. Apply updates
             apply_visual_state(scene, visual)
 
-            # 4. Draw one frame
-            render_frame(scene)
+            # 5. Render frame (NOW pass landmarks too)
+            render_frame(scene, frame, landmarks)
 
             time.sleep(0.02)
 
     except KeyboardInterrupt:
-        print("\n[main] Stopped by user (Ctrl+C).")
+        print("\n[main] Stopped by user.")
     except Exception as e:
         print(f"[main] Error: {e}")
-
 
 if __name__ == "__main__":
     main()

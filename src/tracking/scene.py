@@ -23,10 +23,10 @@ class TrackingContext:
     cap: "cv2.VideoCapture"
     pose: "mp.solutions.pose.Pose"
     t0: float = time.time()
-    preview: bool = True  # set False to disable cv2.imshow
+    preview: bool = False  # set False to disable cv2.imshow
 
 
-def init_tracking(preview: bool = True) -> TrackingContext:
+def init_tracking(preview: bool = False) -> TrackingContext:
     """
     Open webcam and create a MediaPipe Pose object.
     """
@@ -108,7 +108,7 @@ def get_body_state(ctx: TrackingContext) -> Optional[Dict[str, float]]:
             # Caller can catch None to stop its loop
             return None
 
-    return state
+    return state, frame, res.pose_landmarks
 
 
 def _cleanup(ctx: TrackingContext) -> None:
