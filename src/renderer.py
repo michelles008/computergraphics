@@ -30,14 +30,16 @@ def apply_visual_state(scene, visual_state):
     else:
         scene["mode"] = "none"
 
+
+
 def render_frame(scene, frame, landmarks=None):
     w = scene["width"]
     h = scene["height"]
 
-    # Webcam feed as background
+    # Webcam feed
     img = cv2.resize(frame, (w, h))
 
-    # Draw pose skeleton on webcam
+    # Draw skeleton
     if landmarks is not None:
         mp.solutions.drawing_utils.draw_landmarks(
             img,
@@ -45,14 +47,16 @@ def render_frame(scene, frame, landmarks=None):
             mp.solutions.pose.POSE_CONNECTIONS
         )
 
-    # If no hands → just show webcam
+    # No tower → display webcam only
     if not scene.get("active", False):
         cv2.imshow(scene["window_name"], img)
         if cv2.waitKey(1) & 0xFF == 27:
             raise KeyboardInterrupt
         return
 
-    # Compute tower dimensions
+    # -----------------------------
+    # Compute tower geometry
+    # -----------------------------
     t = float(scene.get("tower_height", 1.0))
     t = max(1.0, min(4.0, t))  
     frac = (t - 1.0) / 3.0
@@ -73,20 +77,50 @@ def render_frame(scene, frame, landmarks=None):
     y1 = base_y - tower_px
     y2 = base_y
 
-    # Tower color based on mode
-    mode = scene.get("mode", "none")
-    if mode == "one_hand":
-        color = (0, 255, 0)
-    elif mode == "two_hands":
-        color = (0, 255, 0) 
-    else:
-        color = (0, 255, 0) 
+    # -----------------------------
+    # DYNAMIC SHADING (based on size)
+    # -----------------------------
 
-    # Draw tower ON TOP of webcam feed
-    cv2.rectangle(img, (x1, y1), (x2, y2), color, thickness=-1)
+    # normalize height 0..1
+    height_factor = (scene["tower_height"] - 1.0) / 3.0
+    height_factor = max(0.0, min(1.0, height_factor))
+
+    # normalize width 0..1
+    width_factor = min(1.0, tower_w / 280.0)
+
+    # combined lighting influence (tall/wide towers = brighter)
+    light_factor = (height_factor * 0.7) + (width_factor * 0.3)
+
+    for y in range(y1, y2):
+        # vertical position 0..1
+        tpos = (y - y1) / max(1, (y2 - y1))
+
+        # base brightness scales with tower size
+        base_light = int(60 + 150 * light_factor)
+
+        # shadow also influenced by size
+        shadow_strength = int(60 + 150 * light_factor)
+
+        shade = base_light + int((1 - tpos) * shadow_strength)
+        shade = max(0, min(255, shade))
+
+        shaded_color = (shade, shade, int(shade * 0.7))
+
+        cv2.line(img, (x1, y), (x2, y), shaded_color, 1)
+
+    # -----------------------------
+    # Specular Highlight (right side)
+    # -----------------------------
+    highlight_strength = int(40 + 100 * light_factor)
+    highlight_color = (255, 255, 255)
+
+    cv2.rectangle(img, (x2 - 4, y1), (x2, y2),
+                  highlight_color, 1)
+
+    # Ground line
     cv2.line(img, (0, base_y), (w, base_y), (255, 255, 255), 2)
 
-    # Show final overlay
+    # Display
     cv2.imshow(scene["window_name"], img)
     if cv2.waitKey(1) & 0xFF == 27:
         raise KeyboardInterrupt
