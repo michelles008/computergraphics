@@ -62,23 +62,28 @@ def _extract(body_landmarks, w: int, h: int) -> Optional[Dict[str, float]]:
     """
     if body_landmarks is None:
         return None
-
+    
     lm = body_landmarks.landmark
-    # Common landmark ids
+
     nose = lm[0]
     left_wrist = lm[15]
     right_wrist = lm[16]
-
-    # Invert y so higher hand => larger number
+# Y inverted → higher hand is 1.0
     r_y = _clamp01(1.0 - right_wrist.y)
     l_y = _clamp01(1.0 - left_wrist.y)
-    x_c = _clamp01(nose.x)
 
+# X positions (0..1 left → right)
+    r_x = _clamp01(right_wrist.x)
+    l_x = _clamp01(left_wrist.x)
+    x_c = _clamp01(nose.x)
+    
     return {
         "right_hand_y": r_y,
-        "left_hand_y": l_y,
-        "x_center": x_c,
-    }
+        "left_hand_y":  l_y,
+        "right_hand_x": r_x,
+        "left_hand_x":  l_x,
+        "x_center":     x_c,
+}
 
 
 def get_body_state(ctx: TrackingContext) -> Optional[Dict[str, float]]:
