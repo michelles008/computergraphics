@@ -23,7 +23,7 @@ class TrackingContext:
     cap: "cv2.VideoCapture"
     pose: "mp.solutions.pose.Pose"
     t0: float = time.time()
-    preview: bool = False  # set False to disable cv2.imshow
+    preview: bool = False 
 
 
 def init_tracking(preview: bool = False) -> TrackingContext:
@@ -54,36 +54,29 @@ def _clamp01(v: float) -> float:
     return 0.0 if v < 0.0 else 1.0 if v > 1.0 else v
 
 
-def _extract(body_landmarks, w: int, h: int) -> Optional[Dict[str, float]]:
-    """
-    Pull out: right_hand_y, left_hand_y, x_center (nose.x).
-    MediaPipe gives normalized coords already (0..1).
-    Y increases downward; we invert so 'up' = 1.0.
-    """
+def _extract(body_landmarks, w: int, h: int):
     if body_landmarks is None:
         return None
-    
+
     lm = body_landmarks.landmark
 
-    nose = lm[0]
-    left_wrist = lm[15]
     right_wrist = lm[16]
-# Y inverted → higher hand is 1.0
-    r_y = _clamp01(1.0 - right_wrist.y)
-    l_y = _clamp01(1.0 - left_wrist.y)
+    left_wrist  = lm[15]
+    nose        = lm[0]
+    left_shoulder = lm[11]
+    right_shoulder = lm[12]
 
-# X positions (0..1 left → right)
-    r_x = _clamp01(right_wrist.x)
-    l_x = _clamp01(left_wrist.x)
-    x_c = _clamp01(nose.x)
-    
+    shoulder_mid_x = (left_shoulder.x + right_shoulder.x) / 2.0
+    head_tilt = nose.x - shoulder_mid_x  
+
     return {
-        "right_hand_y": r_y,
-        "left_hand_y":  l_y,
-        "right_hand_x": r_x,
-        "left_hand_x":  l_x,
-        "x_center":     x_c,
-}
+        "right_hand_y": 1.0 - right_wrist.y,
+        "left_hand_y": 1.0 - left_wrist.y,
+        "right_hand_x": right_wrist.x,
+        "left_hand_x": left_wrist.x,
+        "x_center": nose.x,
+        "head_tilt": head_tilt
+    }
 
 
 def get_body_state(ctx: TrackingContext) -> Optional[Dict[str, float]]:
@@ -96,7 +89,6 @@ def get_body_state(ctx: TrackingContext) -> Optional[Dict[str, float]]:
         return None
     frame = cv2.flip(frame, 1)
 
-    # BGR -> RGB for MediaPipe
     rgb = frame[:, :, ::-1]
 
     res = ctx.pose.process(rgb)
