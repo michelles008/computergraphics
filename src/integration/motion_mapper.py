@@ -30,9 +30,6 @@ def body_to_visual(body_state):
     left_present  = left_y > 0.05
     hand_count = int(right_present) + int(left_present)
 
-    # 👉 Godzilla is active whenever AT LEAST ONE hand is up
-    godzilla_active = hand_count >= 1
-
     clenched_threshold = 0.55
     right_clenched = right_present and right_grip < clenched_threshold
     left_clenched = left_present and left_grip < clenched_threshold
@@ -45,12 +42,11 @@ def body_to_visual(body_state):
 
     # ---------------------------
     # 0 HANDS → NO TOWER
-    #    (but we still pass godzilla flag just in case)
+    #    (tower inactive)
     # ---------------------------
     if hand_count == 0:
         result = {
             "active": False,
-            "godzilla_active": godzilla_active,
             "break_trigger": False,
             "grip_debug": grip_debug,
         }
@@ -72,7 +68,6 @@ def body_to_visual(body_state):
             "tower_height": height_norm,
             "side_offset": side_offset,
             "tower_width": 0.25,
-            "godzilla_active": godzilla_active,
             "grip_debug": grip_debug,
         }
         result["break_trigger"] = False
@@ -96,7 +91,6 @@ def body_to_visual(body_state):
             "tower_height": height_norm,
             "side_offset": side_offset,
             "tower_width": width_norm,
-            "godzilla_active": godzilla_active,
             "grip_debug": grip_debug,
         }
         result["break_trigger"] = break_trigger

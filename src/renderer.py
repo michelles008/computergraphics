@@ -1,12 +1,7 @@
 # src/renderer.py
 import cv2
-import numpy as np
 import mediapipe as mp
 import random
-
-godzilla_img = cv2.imread("src/reference_images/GZILL.jpg")
-if godzilla_img is None:
-    print("ERROR: Could not load Godzilla image!")
 
 
 def init_scene():
@@ -20,9 +15,6 @@ def init_scene():
         "active": False,
         "mode": "none",
         "pose_landmarks": None,
-        "godzilla_active": False,
-        "godzilla_x": 450,
-        "godzilla_y": 200,
         "trail_history": [],
         "smoothed_box": None,
         "break_trigger": False,
@@ -36,7 +28,6 @@ def apply_visual_state(scene, visual_state):
     if not visual_state:
         return
 
-    scene["godzilla_active"] = visual_state.get("godzilla_active", False)
     scene["break_trigger"] = visual_state.get("break_trigger", False)
     scene["grip_debug"] = visual_state.get("grip_debug")
     scene["active"] = visual_state.get("active", False)
@@ -214,20 +205,6 @@ def render_frame(scene, frame, landmarks=None):
 
     # Ground line
     cv2.line(img, (0, base_y), (w, base_y), (255, 255, 255), 2)
-
-    # -----------------------------
-    # GODZILLA OVERLAY
-    # -----------------------------
-    if scene.get("godzilla_active", False) and godzilla_img is not None:
-
-        gz = cv2.resize(godzilla_img, (160, 160))
-        gx = scene.get("godzilla_x", 450)
-        gy = scene.get("godzilla_y", 200)
-
-        h_gz, w_gz, _ = gz.shape
-
-        if gy + h_gz < img.shape[0] and gx + w_gz < img.shape[1]:
-            img[gy:gy + h_gz, gx:gx + w_gz] = gz
 
     # Display
     cv2.imshow(scene["window_name"], img)
