@@ -64,19 +64,30 @@ def render_frame(scene, frame, landmarks=None):
     # -----------------------------
     # Compute tower geometry
     # -----------------------------
-    t = float(scene.get("tower_height", 1.0))
-    t = max(1.0, min(4.0, t))
-    frac = (t - 1.0) / 3.0
+    base_y = h - 40
 
-    min_px = 60
-    max_px = h - 80
-    tower_px = int(min_px + frac * (max_px - min_px))
+    raw_height = float(scene.get("tower_height", 0.3))
+    if raw_height <= 1.0:
+        height_norm = max(0.0, min(1.0, raw_height))
+    else:
+        height_norm = max(0.0, min(1.0, (raw_height - 1.0) / 3.0))
+
+    min_height_px = 40
+    max_height_px = base_y - 20
+    tower_px = int(min_height_px + height_norm * (max_height_px - min_height_px))
 
     offset = float(scene.get("side_offset", 0.0))
     offset = max(-1.0, min(1.0, offset))
-    
-    tower_w = int(scene.get("tower_width", 80))
-    base_y = h - 40
+
+    raw_width = float(scene.get("tower_width", 0.25))
+    min_width_px = 40
+    max_width_px = int(w * 0.9)
+    if raw_width <= 1.0:
+        width_norm = max(0.0, min(1.0, raw_width))
+        tower_w = int(min_width_px + width_norm * (max_width_px - min_width_px))
+    else:
+        tower_w = int(max(min_width_px, min(max_width_px, raw_width)))
+        width_norm = max(0.0, min(1.0, (tower_w - min_width_px) / max(1, (max_width_px - min_width_px))))
 
     center_x = int(w / 2 + offset * (w / 3))
     x1 = center_x - tower_w // 2
@@ -110,10 +121,9 @@ def render_frame(scene, frame, landmarks=None):
     # -----------------------------
     # DYNAMIC SHADING (based on size)
     # -----------------------------
-    height_factor = (scene["tower_height"] - 1.0) / 3.0
-    height_factor = max(0.0, min(1.0, height_factor))
+    height_factor = height_norm
 
-    width_factor = min(1.0, tower_w / 280.0)
+    width_factor = width_norm
 
     light_factor = (height_factor * 0.7) + (width_factor * 0.3)
 
