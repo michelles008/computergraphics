@@ -22,7 +22,8 @@ def init_scene():
         "godzilla_active": False,
         "godzilla_x": 450,
         "godzilla_y": 200,
-        "trail_history": []
+        "trail_history": [],
+        "smoothed_box": None
     }
 
 
@@ -95,28 +96,37 @@ def render_frame(scene, frame, landmarks=None):
     y1 = base_y - tower_px
     y2 = base_y
 
-    scene["trail_history"].append((x1, y1, x2, y2))
-    if len(scene["trail_history"]) > 10:
+    new_box = (x1, y1, x2, y2)
+    prev_box = scene.get("smoothed_box")
+    if prev_box is None:
+        smoothed = new_box
+    else:
+        alpha = 0.25
+        smoothed = tuple(
+            int(prev_box[i] * (1 - alpha) + new_box[i] * alpha)
+            for i in range(4)
+        )
+    scene["smoothed_box"] = smoothed
+
+    scene["trail_history"].append(smoothed)
+    max_trail = 5
+    if len(scene["trail_history"]) > max_trail:
         scene["trail_history"].pop(0)
 
 
     # -----------------------------
     # AURA / SHIMMER TRAIL
     # -----------------------------
-    for i, (tx1, ty1, tx2, ty2) in enumerate(scene["trail_history"]):
-        fade = (i + 1) / len(scene["trail_history"])  
-        glow = int(200 * fade)                        
+    if scene["trail_history"]:
+        overlay = img.copy()
+        total = len(scene["trail_history"])
+        for i, (tx1, ty1, tx2, ty2) in enumerate(scene["trail_history"]):
+            fade = (i + 1) / total
+            color = (int(40 * fade), int(60 * fade), int(180 * fade))
+            cv2.rectangle(overlay, (tx1, ty1), (tx2, ty2), color, -1)
 
-        cv2.rectangle(
-            img,
-            (tx1, ty1),
-            (tx2, ty2),
-            (0, glow, glow),   
-            2
-        )
-
-    if len(scene["trail_history"]) > 10:
-        scene["trail_history"].pop(0)
+        alpha = 0.2
+        img = cv2.addWeighted(overlay, alpha, img, 1 - alpha, 0)
 
     # -----------------------------
     # DYNAMIC SHADING (based on size)
