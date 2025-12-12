@@ -2,6 +2,7 @@
 import cv2
 import numpy as np
 import mediapipe as mp
+import random
 
 godzilla_img = cv2.imread("src/reference_images/GZILL.jpg")
 if godzilla_img is None:
@@ -23,7 +24,11 @@ def init_scene():
         "godzilla_x": 450,
         "godzilla_y": 200,
         "trail_history": [],
-        "smoothed_box": None
+        "smoothed_box": None,
+        "break_trigger": False,
+        "break_timer": 0,
+        "break_particles": [],
+        "grip_debug": None
     }
 
 
@@ -32,6 +37,8 @@ def apply_visual_state(scene, visual_state):
         return
 
     scene["godzilla_active"] = visual_state.get("godzilla_active", False)
+    scene["break_trigger"] = visual_state.get("break_trigger", False)
+    scene["grip_debug"] = visual_state.get("grip_debug")
     scene["active"] = visual_state.get("active", False)
 
     if scene["active"]:
@@ -57,6 +64,10 @@ def render_frame(scene, frame, landmarks=None):
         )
 
     if not scene.get("active", False):
+        debug = scene.get("grip_debug")
+        if debug:
+            msg = f"Grip L:{debug.get('left', 0):.2f} R:{debug.get('right', 0):.2f}"
+            cv2.putText(img, msg, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
         cv2.imshow(scene["window_name"], img)
         if cv2.waitKey(1) & 0xFF == 27:
             raise KeyboardInterrupt
@@ -96,6 +107,11 @@ def render_frame(scene, frame, landmarks=None):
     y1 = base_y - tower_px
     y2 = base_y
 
+    debug = scene.get("grip_debug")
+    if debug:
+        msg = f"Grip L:{debug.get('left', 0):.2f} R:{debug.get('right', 0):.2f}"
+        cv2.putText(img, msg, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+
     new_box = (x1, y1, x2, y2)
     prev_box = scene.get("smoothed_box")
     if prev_box is None:
@@ -112,6 +128,46 @@ def render_frame(scene, frame, landmarks=None):
     max_trail = 5
     if len(scene["trail_history"]) > max_trail:
         scene["trail_history"].pop(0)
+
+    trigger_break = False
+    if scene.get("break_trigger"):
+        trigger_break = True
+        scene["break_trigger"] = False
+
+    if trigger_break and scene.get("break_timer", 0) == 0:
+        particles = []
+        for _ in range(30):
+            px = random.uniform(x1, x2)
+            py = random.uniform(y1, y2)
+            vx = random.uniform(-5, 5)
+            vy = random.uniform(-8, -2)
+            particles.append({"x": px, "y": py, "vx": vx, "vy": vy})
+        scene["break_particles"] = particles
+        scene["break_timer"] = 14
+
+    if scene.get("break_timer", 0) > 0:
+        particles = scene.get("break_particles", [])
+        new_particles = []
+        for p in particles:
+            p["x"] += p["vx"]
+            p["y"] += p["vy"]
+            p["vy"] += 0.8
+            if 0 <= p["x"] < w and p["y"] < h:
+                new_particles.append(p)
+                cv2.circle(
+                    img,
+                    (int(p["x"]), int(p["y"])),
+                    4,
+                    (200, 220, 255),
+                    -1,
+                )
+        scene["break_particles"] = new_particles
+        scene["break_timer"] = max(0, scene["break_timer"] - 1)
+
+        cv2.imshow(scene["window_name"], img)
+        if cv2.waitKey(1) & 0xFF == 27:
+            raise KeyboardInterrupt
+        return
 
 
     # -----------------------------
